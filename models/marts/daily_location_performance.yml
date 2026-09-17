@@ -3,8 +3,9 @@ models:
     description: |
       Daily store performance for location-level reporting, with one row per
       order date and location that recorded at least one order. Revenue is
-      merchandise revenue before tax so food and drink revenue reconcile to
-      total revenue. Zero-value orders without line items remain in order_count.
+      pre-tax merchandise revenue, split between food and drink products.
+      Orders without line items remain included in count_orders with zero
+      food and drink revenue.
     config:
       group: analytics_engineering
       meta:
@@ -14,8 +15,8 @@ models:
           arguments:
             expression: "total_revenue = food_revenue + drink_revenue"
     columns:
-      - name: daily_location_performance_id
-        description: Surrogate key for the combination of order_date and location_id.
+      - name: daily_location_performance_key
+        description: Surrogate primary key generated from order_date and location_id.
         data_tests:
           - not_null
           - unique
@@ -32,11 +33,11 @@ models:
                 to: ref('locations')
                 field: location_id
       - name: location_name
-        description: Reporting name of the store as defined in the locations mart.
+        description: Reporting name of the store from the locations mart.
       - name: total_revenue
         description: Total pre-tax merchandise revenue from orders placed at the location on the date.
-      - name: order_count
-        description: Number of orders placed at the location on the date, including zero-value orders without line items.
+      - name: count_orders
+        description: Number of orders placed at the location on the date, including orders without line items.
       - name: food_revenue
         description: Pre-tax merchandise revenue from products classified as food.
       - name: drink_revenue

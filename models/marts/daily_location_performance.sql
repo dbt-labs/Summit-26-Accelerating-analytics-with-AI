@@ -2,19 +2,35 @@ with
 
 orders as (
 
-    select * from {{ ref('orders') }}
+    select
+        order_id,
+        order_date,
+        location_id,
+        subtotal
+
+    from {{ ref('orders') }}
 
 ),
 
 order_items as (
 
-    select * from {{ ref('order_items') }}
+    select
+        order_id,
+        product_price,
+        is_food_item,
+        is_drink_item
+
+    from {{ ref('order_items') }}
 
 ),
 
 locations as (
 
-    select * from {{ ref('locations') }}
+    select
+        location_id,
+        location_name
+
+    from {{ ref('locations') }}
 
 ),
 
@@ -41,19 +57,13 @@ order_item_revenue as (
 
 ),
 
-final as (
+daily_location_metrics as (
 
     select
-        {{ dbt_utils.generate_surrogate_key([
-            'orders.order_date',
-            'orders.location_id'
-        ]) }} as daily_location_performance_id,
         orders.order_date,
         orders.location_id,
-        locations.location_name,
-
         sum(orders.subtotal) as total_revenue,
-        count(*) as order_count,
+        count(*) as count_orders,
         sum(coalesce(order_item_revenue.food_revenue, 0)) as food_revenue,
         sum(coalesce(order_item_revenue.drink_revenue, 0)) as drink_revenue
 
@@ -62,10 +72,29 @@ final as (
     left join order_item_revenue
         on orders.order_id = order_item_revenue.order_id
 
-    inner join locations
-        on orders.location_id = locations.location_id
+    group by 1, 2
 
-    group by 1, 2, 3, 4
+),
+
+final as (
+
+    select
+        {{ dbt_utils.generate_surrogate_key([
+            'daily_location_metrics.order_date',
+            'daily_location_metrics.location_id'
+        ]) }} as daily_location_performance_key,
+        daily_location_metrics.order_date,
+        daily_location_metrics.location_id,
+        locations.location_name,
+        daily_location_metrics.total_revenue,
+        daily_location_metrics.count_orders,
+        daily_location_metrics.food_revenue,
+        daily_location_metrics.drink_revenue
+
+    from daily_location_metrics
+
+    left join locations
+        on daily_location_metrics.location_id = locations.location_id
 
 )
 
