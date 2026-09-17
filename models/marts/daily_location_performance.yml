@@ -1,0 +1,40 @@
+models:
+  - name: daily_location_performance
+    description: Daily store sales performance for manager reporting, with one row per location and order date. Revenue is pre-tax product revenue so the food and drink amounts reconcile to total revenue.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+          description: Product category revenue should reconcile to the pre-tax daily revenue total.
+    columns:
+      - name: daily_location_performance_key
+        description: Generated primary key for the location and order-date grain.
+        data_tests:
+          - not_null
+          - unique
+      - name: location_id
+        description: Foreign key for the store whose performance is represented.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Store name included for manager-facing reporting.
+      - name: order_date
+        description: Calendar date on which the location's orders were placed.
+        data_tests:
+          - not_null
+      - name: count_orders
+        description: Count of distinct orders placed at the location on the order date.
+      - name: total_revenue
+        description: Pre-tax product revenue from all orders at the location on the order date.
+      - name: food_revenue
+        description: Pre-tax product revenue from items classified as food at the location on the order date.
+      - name: drink_revenue
+        description: Pre-tax product revenue from items classified as drinks at the location on the order date.
