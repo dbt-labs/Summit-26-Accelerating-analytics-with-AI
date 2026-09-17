@@ -1,0 +1,47 @@
+models:
+  - name: daily_location_performance
+    description: Daily store performance mart at one row per order date and location. Revenue is reported before tax so food and drink revenue reconcile to total revenue; zero-subtotal orders remain included in the order count.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+    columns:
+      - name: daily_location_performance_id
+        description: Surrogate key generated from the order date and location ID to enforce the mart's daily-location grain.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_date
+        description: Calendar date on which the included orders were placed.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: Store location credited with the day's orders and revenue.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Manager-facing store name from the locations mart.
+      - name: total_revenue
+        description: Total pre-tax merchandise revenue from all orders placed at the location on the date, in USD.
+        data_tests:
+          - not_null
+      - name: order_count
+        description: Number of orders placed at the location on the date, including zero-subtotal orders without items.
+        data_tests:
+          - not_null
+      - name: food_revenue
+        description: Pre-tax revenue from products classified as food, in USD.
+        data_tests:
+          - not_null
+      - name: drink_revenue
+        description: Pre-tax revenue from products classified as drinks, in USD.
+        data_tests:
+          - not_null
