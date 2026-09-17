@@ -1,0 +1,39 @@
+models:
+  - name: daily_location_performance
+    description: Daily store performance for manager reporting, with one row per location per order date. Revenue is pre-tax merchandise revenue so the food and drink components reconcile to total revenue; location-days without orders are excluded.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+    columns:
+      - name: location_day_id
+        description: Surrogate key for the location and order date grain.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_date
+        description: Date on which the included orders were placed.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: Store identifier used to join this performance view to the location dimension.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Store name included for direct use in manager-facing reports.
+      - name: total_revenue
+        description: Pre-tax merchandise revenue from all orders at the location on the order date.
+      - name: order_count
+        description: Number of orders placed at the location on the order date, including zero-revenue orders.
+      - name: food_revenue
+        description: Pre-tax merchandise revenue from products classified as food.
+      - name: drink_revenue
+        description: Pre-tax merchandise revenue from products classified as drinks.
