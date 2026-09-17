@@ -1,0 +1,49 @@
+models:
+  - name: daily_location_performance
+    description: Daily store performance mart with one row per location per order date. Revenue is pre-tax merchandise revenue, split into mutually exclusive food and drink categories; orders without line items remain in the order count with zero revenue. Incremental runs reprocess a three-day lookback window to capture recent updates.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+    columns:
+      - name: daily_location_performance_key
+        description: Surrogate key generated from the order date and location ID, enforcing the mart's daily-location grain.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_date
+        description: Calendar date on which the included orders were placed.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: Store where the included orders were placed.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Manager-facing name of the store as recorded in the location dimension.
+        data_tests:
+          - not_null
+      - name: count_orders
+        description: Number of orders placed at the location on the order date, including zero-value orders without line items.
+        data_tests:
+          - not_null
+      - name: total_revenue
+        description: Pre-tax merchandise revenue from all orders placed at the location on the order date, in USD.
+        data_tests:
+          - not_null
+      - name: food_revenue
+        description: Portion of total revenue from products classified as food, in USD.
+        data_tests:
+          - not_null
+      - name: drink_revenue
+        description: Portion of total revenue from products classified as drinks, in USD.
+        data_tests:
+          - not_null
