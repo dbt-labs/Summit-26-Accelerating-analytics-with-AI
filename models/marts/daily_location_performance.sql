@@ -13,8 +13,7 @@ orders as (
     select
         order_id,
         location_id,
-        order_date,
-        subtotal
+        order_date
 
     from {{ ref('orders') }}
 
@@ -46,50 +45,6 @@ order_items as (
 
 ),
 
-order_item_revenue as (
-
-    select
-        order_id,
-
-        sum(
-            case
-                when is_food_item then product_price
-                else 0
-            end
-        ) as food_revenue,
-        sum(
-            case
-                when is_drink_item then product_price
-                else 0
-            end
-        ) as drink_revenue
-
-    from order_items
-
-    group by 1
-
-),
-
-location_daily_orders as (
-
-    select
-        orders.location_id,
-        orders.order_date,
-
-        sum(orders.subtotal) as total_revenue,
-        count(*) as count_orders,
-        sum(coalesce(order_item_revenue.food_revenue, 0)) as food_revenue,
-        sum(coalesce(order_item_revenue.drink_revenue, 0)) as drink_revenue
-
-    from orders
-
-    left join order_item_revenue
-        on orders.order_id = order_item_revenue.order_id
-
-    group by 1, 2
-
-),
-
 locations as (
 
     select
@@ -100,26 +55,59 @@ locations as (
 
 ),
 
+order_revenue as (
+
+    select
+        order_id,
+
+        sum(product_price) as total_revenue,
+        sum(case when is_food_item then product_price else 0 end) as food_revenue,
+        sum(case when is_drink_item then product_price else 0 end) as drink_revenue
+
+
+    from order_items
+
+    group by 1
+
+),
+
+daily_performance as (
+
+    select
+        orders.order_date,
+        orders.location_id,
+
+        count(orders.order_id) as count_orders,
+        sum(coalesce(order_revenue.total_revenue, 0)) as total_revenue,
+        sum(coalesce(order_revenue.food_revenue, 0)) as food_revenue,
+        sum(coalesce(order_revenue.drink_revenue, 0)) as drink_revenue
+
+    from orders
+
+    left join order_revenue on orders.order_id = order_revenue.order_id
+
+    group by 1, 2
+
+),
+
 final as (
 
     select
         {{ dbt_utils.generate_surrogate_key([
-            'location_daily_orders.location_id',
-            'location_daily_orders.order_date'
+            'daily_performance.order_date',
+            'daily_performance.location_id'
         ]) }} as daily_location_performance_key,
-        location_daily_orders.order_date,
-        location_daily_orders.location_id,
+        daily_performance.order_date,
+        daily_performance.location_id,
         locations.location_name,
+        daily_performance.count_orders,
+        daily_performance.total_revenue,
+        daily_performance.food_revenue,
+        daily_performance.drink_revenue
 
-        location_daily_orders.total_revenue,
-        location_daily_orders.count_orders,
-        location_daily_orders.food_revenue,
-        location_daily_orders.drink_revenue
+    from daily_performance
 
-    from location_daily_orders
-
-    left join locations
-        on location_daily_orders.location_id = locations.location_id
+    left join locations on daily_performance.location_id = locations.location_id
 
 )
 
