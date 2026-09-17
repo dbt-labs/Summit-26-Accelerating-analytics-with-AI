@@ -29,11 +29,21 @@ models:
                 field: location_id
       - name: location_name
         description: Store name included for manager-facing reporting.
+        data_tests:
+          - not_null
       - name: total_revenue
         description: Total merchandise revenue before tax, calculated as the sum of order subtotals for the location and date.
+        data_tests:
+          - not_null
       - name: order_count
         description: Number of distinct orders placed at the location on the date; orders are already unique in the upstream orders mart.
+        data_tests:
+          - not_null
       - name: food_revenue
         description: Pre-tax merchandise revenue from products classified as food.
+        data_tests:
+          - not_null
       - name: drink_revenue
         description: Pre-tax merchandise revenue from products classified as drinks.
+        data_tests:
+          - not_null
