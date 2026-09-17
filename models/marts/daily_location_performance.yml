@@ -1,6 +1,6 @@
 models:
   - name: daily_location_performance
-    description: Daily store performance for manager reporting, with one row per location per order date. Revenue is pre-tax merchandise revenue so the food and drink components reconcile to total revenue; location-days without orders are excluded.
+    description: Daily store performance for manager reporting, with one row per location per order date. Revenue is pre-tax merchandise revenue so the food and drink components reconcile to total revenue; location-days without orders are excluded. Incremental runs reprocess the latest three days to capture late-arriving order changes.
     config:
       group: analytics_engineering
       meta:
@@ -10,8 +10,8 @@ models:
           arguments:
             expression: "total_revenue = food_revenue + drink_revenue"
     columns:
-      - name: location_day_id
-        description: Surrogate key for the location and order date grain.
+      - name: daily_location_performance_key
+        description: Generated primary key for the location and order date grain.
         data_tests:
           - not_null
           - unique
@@ -31,7 +31,7 @@ models:
         description: Store name included for direct use in manager-facing reports.
       - name: total_revenue
         description: Pre-tax merchandise revenue from all orders at the location on the order date.
-      - name: order_count
+      - name: count_orders
         description: Number of orders placed at the location on the order date, including zero-revenue orders.
       - name: food_revenue
         description: Pre-tax merchandise revenue from products classified as food.
