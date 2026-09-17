@@ -17,7 +17,7 @@ Show me a preview of daily_location_performance as a table.
 2. Ask Wizard to visualize the data, right in the thread.
 
 <ul>
-Visualize monthly total_revenue by location. Return only an in-thread ASCII horizontal bar chart, with months on the y-axis and aggregated revenue on the x-axis. Use a separate bar for each location and include a legend.
+Visualize monthly total_revenue by location. Return a bar chart, with months on the y-axis and aggregated revenue on the x-axis. Use a separate bar for each location.
 </ul>
 
 3. Ask Wizard to show you where this model sits in the DAG.
