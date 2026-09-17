@@ -1,0 +1,39 @@
+models:
+  - name: daily_location_performance
+    description: Daily store performance mart with one row per location and order date where at least one order was placed. Revenue excludes collected tax and is split into food and drink merchandise revenue so the category values reconcile to total revenue. Orders without line items remain included in the order count.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+    columns:
+      - name: daily_location_performance_key
+        description: Generated primary key for the location and order date grain, used to merge updated daily results during incremental runs.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_date
+        description: Calendar date on which the location's orders were placed.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: Location associated with the day's orders.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Store name shown to managers for location-level reporting; null only when an order references an unknown location.
+      - name: count_orders
+        description: Number of orders placed at the location on the order date, including zero-value orders without line items.
+      - name: total_revenue
+        description: Merchandise revenue in USD before tax, calculated from order subtotals.
+      - name: food_revenue
+        description: Merchandise revenue in USD from products classified as food; zero when the day's orders contain no food items.
+      - name: drink_revenue
+        description: Merchandise revenue in USD from products classified as drinks; zero when the day's orders contain no drink items.
