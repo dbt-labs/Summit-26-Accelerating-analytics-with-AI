@@ -56,3 +56,6 @@ Run a dbt compare on daily_location_performance and show me the results.
      logic (like food/drink classification) that already exists elsewhere?
 
 7. Note down here in the exercise file or on a separate notepad what rule violations you found.
+    -- order_count should be count_orders
+    --locaiton join is a left join
+    --it's not configed as anything so its a view
