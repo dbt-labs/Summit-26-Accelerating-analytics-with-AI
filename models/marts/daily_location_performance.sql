@@ -1,22 +1,50 @@
+{{
+    config(
+        materialized='incremental',
+        unique_key='daily_location_performance_key',
+        incremental_strategy='merge'
+    )
+}}
+
 with
 
-order_items as (
+orders as (
 
-    select
-        order_id,
-        product_price,
-        is_food_item,
-        is_drink_item
+    select * from {{ ref('stg_orders') }}
 
-    from {{ ref('order_items') }}
+    {% if is_incremental() %}
+    where order_date >= (
+        select coalesce(dateadd(day, -3, max(order_date)), '1900-01-01'::date)
+        from {{ this }}
+    )
+    {% endif %}
 
 ),
 
-order_revenue as (
+order_items as (
+
+    select * from {{ ref('order_items') }}
+
+    {% if is_incremental() %}
+    where order_date >= (
+        select coalesce(dateadd(day, -3, max(order_date)), '1900-01-01'::date)
+        from {{ this }}
+    )
+    {% endif %}
+
+),
+
+locations as (
+
+    select * from {{ ref('locations') }}
+
+),
+
+order_item_revenue as (
 
     select
         order_id,
-        sum(product_price) as total_revenue,
+
         sum(
             case
                 when is_food_item then product_price
@@ -36,24 +64,38 @@ order_revenue as (
 
 ),
 
-orders as (
+orders_with_item_revenue as (
 
     select
-        order_id,
-        order_date,
-        location_id
+        orders.order_id,
+        orders.order_date,
+        orders.location_id,
+        orders.subtotal,
 
-    from {{ ref('orders') }}
+        coalesce(order_item_revenue.food_revenue, 0) as food_revenue,
+        coalesce(order_item_revenue.drink_revenue, 0) as drink_revenue
+
+    from orders
+
+    left join order_item_revenue
+        on orders.order_id = order_item_revenue.order_id
 
 ),
 
-locations as (
+daily_location_revenue as (
 
     select
+        order_date,
         location_id,
-        location_name
 
-    from {{ ref('locations') }}
+        sum(subtotal) as total_revenue,
+        count(order_id) as count_orders,
+        sum(food_revenue) as food_revenue,
+        sum(drink_revenue) as drink_revenue
+
+    from orders_with_item_revenue
+
+    group by 1, 2
 
 ),
 
@@ -61,25 +103,23 @@ final as (
 
     select
         {{ dbt_utils.generate_surrogate_key([
-            'orders.order_date',
-            'orders.location_id'
-        ]) }} as daily_location_performance_id,
-        orders.order_date,
-        orders.location_id,
+            'daily_location_revenue.order_date',
+            'daily_location_revenue.location_id'
+        ]) }} as daily_location_performance_key,
+        daily_location_revenue.order_date,
+        daily_location_revenue.location_id,
+
         locations.location_name,
 
-        count(*) as order_count,
-        sum(coalesce(order_revenue.total_revenue, 0)) as total_revenue,
-        sum(coalesce(order_revenue.food_revenue, 0)) as food_revenue,
-        sum(coalesce(order_revenue.drink_revenue, 0)) as drink_revenue
+        daily_location_revenue.total_revenue,
+        daily_location_revenue.count_orders,
+        daily_location_revenue.food_revenue,
+        daily_location_revenue.drink_revenue
 
-    from orders
+    from daily_location_revenue
 
-    inner join locations on orders.location_id = locations.location_id
-
-    left join order_revenue on orders.order_id = order_revenue.order_id
-
-    group by 1, 2, 3, 4
+    left join locations
+        on daily_location_revenue.location_id = locations.location_id
 
 )
 
