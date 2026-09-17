@@ -10,7 +10,7 @@ models:
           arguments:
             expression: "total_revenue = food_revenue + drink_revenue"
     columns:
-      - name: daily_location_performance_id
+      - name: daily_location_performance_key
         description: Surrogate primary key generated from the order date and location ID.
         data_tests:
           - not_null
@@ -35,7 +35,7 @@ models:
         description: Total merchandise revenue before tax, calculated as the sum of order subtotals for the location and date.
         data_tests:
           - not_null
-      - name: order_count
+      - name: count_orders
         description: Number of distinct orders placed at the location on the date; orders are already unique in the upstream orders mart.
         data_tests:
           - not_null
