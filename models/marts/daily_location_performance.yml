@@ -1,0 +1,47 @@
+models:
+  - name: daily_location_performance
+    description: Daily store performance from the first observed order through the latest order date, with one row per open location per day. Zero-order days are retained so managers can distinguish no sales from missing rows. Revenue is pre-tax and reconciles to categorized food and drink item sales.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+    columns:
+      - name: daily_location_performance_key
+        description: Generated primary key for the combination of order date and location.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_date
+        description: Calendar date represented by the row. Dates continue through the latest order available in the warehouse.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: Store represented by the row.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Manager-facing store name from the locations mart.
+      - name: total_revenue
+        description: Total pre-tax order revenue for the location and date, including zero-dollar orders. Zero when the location had no sales.
+        data_tests:
+          - not_null
+      - name: count_orders
+        description: Number of orders placed at the location on the date, including zero-dollar orders. Zero when no orders were placed.
+        data_tests:
+          - not_null
+      - name: food_revenue
+        description: Pre-tax line-item revenue from products classified as food. Zero when no food items were sold.
+        data_tests:
+          - not_null
+      - name: drink_revenue
+        description: Pre-tax line-item revenue from products classified as drinks. Zero when no drink items were sold.
+        data_tests:
+          - not_null
