@@ -1,0 +1,61 @@
+models:
+  - name: daily_location_performance
+    description: Daily store performance at one row per location and order date. Revenue measures are pre-tax USD so total revenue reconciles directly to food and drink revenue.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - location_id
+              - order_date
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "order_count >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "food_revenue >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "drink_revenue >= 0"
+    columns:
+      - name: order_date
+        description: The calendar date on which the orders were placed.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: The unique identifier for the store location.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: The store location name used in manager-facing reporting.
+        data_tests:
+          - not_null
+      - name: total_revenue
+        description: Total pre-tax order revenue for the location and date, in USD. Includes zero-value orders.
+        data_tests:
+          - not_null
+      - name: order_count
+        description: Number of orders placed at the location on the date, including zero-value orders.
+        data_tests:
+          - not_null
+      - name: food_revenue
+        description: Pre-tax revenue from food items for the location and date, in USD.
+        data_tests:
+          - not_null
+      - name: drink_revenue
+        description: Pre-tax revenue from drink items for the location and date, in USD.
+        data_tests:
+          - not_null
