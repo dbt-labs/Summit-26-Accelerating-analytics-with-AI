@@ -1,0 +1,64 @@
+models:
+  - name: daily_location_performance
+    description: >
+      Daily store performance for location-days with at least one order. Revenue is
+      pretax product revenue in USD so total revenue reconciles to food revenue plus
+      drink revenue. One row per location per order date.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - order_date
+              - location_id
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "food_revenue >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "drink_revenue >= 0"
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "order_count > 0"
+    columns:
+      - name: order_date
+        description: The date on which the orders were placed.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: The location whose daily performance is represented.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: The name of the location.
+        data_tests:
+          - not_null
+      - name: total_revenue
+        description: Total pretax product revenue in USD for the location and date.
+        data_tests:
+          - not_null
+      - name: food_revenue
+        description: Pretax revenue in USD from products classified as food.
+        data_tests:
+          - not_null
+      - name: drink_revenue
+        description: Pretax revenue in USD from products classified as drinks.
+        data_tests:
+          - not_null
+      - name: order_count
+        description: Number of orders placed at the location on the date.
+        data_tests:
+          - not_null
