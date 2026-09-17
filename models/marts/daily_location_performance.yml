@@ -1,0 +1,39 @@
+models:
+  - name: daily_location_performance
+    description: Daily store performance for manager reporting, with one row per location per observed order date. Locations without orders on a date are retained with zero revenue and zero orders.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+    columns:
+      - name: location_day_id
+        description: Surrogate key for the location and order date that defines this mart's grain.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_date
+        description: Calendar date used to report the location's daily performance.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: Store included in the daily performance row, including stores with no orders that day.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Display name of the store for manager-facing reports.
+      - name: total_revenue
+        description: Total tax-inclusive order revenue in USD; zero when the location had no orders that day.
+      - name: order_count
+        description: Number of orders placed at the location on the date.
+      - name: food_revenue
+        description: Tax-inclusive USD revenue attributed to food. Order tax is allocated by the food share of subtotal and rounded to cents.
+      - name: drink_revenue
+        description: Tax-inclusive USD revenue attributed to drinks. This receives the order-level rounding remainder so food and drink revenue reconcile to total revenue.
