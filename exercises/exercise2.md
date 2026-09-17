@@ -56,3 +56,15 @@ Run a dbt compare on daily_location_performance and show me the results.
      logic (like food/drink classification) that already exists elsewhere?
 
 7. Note down here in the exercise file or on a separate notepad what rule violations you found.
+
+before agent and skill)
+Every model has a single-column primary key	✅	The surrogate key is tested not_null and unique.
+Counts use the count_ prefix	❌	order_count should be named count_orders.
+Generated key uses <model_name>_key	❌	daily_location_performance_id should be daily_location_performance_key.
+Mart sets config.meta.owner and config.group	✅	Both are set to analytics_engineering in the YAML.
+Transactional aggregates are incremental	❌	The model inherits the marts-level table materialization and has no incremental config.
+Aggregate transactional data before joining	✅	order_items is aggregated to order grain in order_revenue before the final joins.
+Descriptive dimension enrichment uses a left join	❌	The join to locations is an inner join; the rule calls for a left join unless unmatched orders are intentionally excluded.
+Last CTE is named final	✅	The final CTE is correctly named final.
+
+The SQL and YAML both need updating for the two column renames. The incremental conversion also needs a defined incremental strategy and filter—not just materialized: incremental.
