@@ -1,0 +1,49 @@
+models:
+  - name: daily_location_performance
+    description: Daily store performance for manager reporting, with one row per order date and location. Revenue is pre-tax merchandise revenue so the food and drink components reconcile to the total; zero-value orders without line items remain in the order count.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+    columns:
+      - name: daily_location_id
+        description: Surrogate key for the combination of order date and location.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_date
+        description: Calendar date on which the included orders were placed.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: Store identifier used to aggregate orders and join to the location dimension.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Manager-facing store name from the location dimension.
+        data_tests:
+          - not_null
+      - name: total_revenue
+        description: Sum of pre-tax order subtotals in USD, including zero-value orders.
+        data_tests:
+          - not_null
+      - name: order_count
+        description: Number of orders placed at the location on the order date, including zero-value orders without line items.
+        data_tests:
+          - not_null
+      - name: food_revenue
+        description: Pre-tax revenue in USD from line items classified as food.
+        data_tests:
+          - not_null
+      - name: drink_revenue
+        description: Pre-tax revenue in USD from line items classified as drinks.
+        data_tests:
+          - not_null
