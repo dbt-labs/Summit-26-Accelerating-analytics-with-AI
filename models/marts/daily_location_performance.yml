@@ -1,0 +1,44 @@
+models:
+  - name: daily_location_performance
+    description: Daily sales performance for store managers, with one row per location and order date that had sales. Revenue is pre-tax merchandise revenue in USD, split into mutually exclusive food and drink categories.
+    config:
+      group: analytics_engineering
+      meta:
+        owner: analytics_engineering
+    data_tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "total_revenue = food_revenue + drink_revenue"
+          description: Food and drink revenue should fully reconcile to total pre-tax revenue. Investigate unclassified products or missing order items when this fails.
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "order_count > 0"
+          description: Rows represent location-days with sales, so each row must include at least one order.
+    columns:
+      - name: daily_location_performance_id
+        description: Surrogate key for the location and order date grain.
+        data_tests:
+          - not_null
+          - unique
+      - name: order_date
+        description: Calendar date on which the included orders were placed.
+        data_tests:
+          - not_null
+      - name: location_id
+        description: Store location associated with the daily sales activity.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('locations')
+                field: location_id
+      - name: location_name
+        description: Manager-facing name of the store location.
+      - name: total_revenue
+        description: Total pre-tax merchandise revenue in USD across all orders for the location and date.
+      - name: order_count
+        description: Number of distinct orders placed at the location on the date. Orders are unique upstream, so this is calculated after collapsing item-level revenue to one row per order.
+      - name: food_revenue
+        description: Portion of total revenue in USD from products classified as food.
+      - name: drink_revenue
+        description: Portion of total revenue in USD from products classified as drinks.
