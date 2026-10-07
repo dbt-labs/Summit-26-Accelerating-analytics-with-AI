@@ -12,11 +12,11 @@ models:
           description: Food and drink revenue should fully reconcile to total pre-tax revenue. Investigate unclassified products or missing order items when this fails.
       - dbt_utils.expression_is_true:
           arguments:
-            expression: "order_count > 0"
+            expression: "count_orders > 0"
           description: Rows represent location-days with sales, so each row must include at least one order.
     columns:
-      - name: daily_location_performance_id
-        description: Surrogate key for the location and order date grain.
+      - name: daily_location_performance_key
+        description: Generated primary key for the location and order date grain.
         data_tests:
           - not_null
           - unique
@@ -36,8 +36,8 @@ models:
         description: Manager-facing name of the store location.
       - name: total_revenue
         description: Total pre-tax merchandise revenue in USD across all orders for the location and date.
-      - name: order_count
-        description: Number of distinct orders placed at the location on the date. Orders are unique upstream, so this is calculated after collapsing item-level revenue to one row per order.
+      - name: count_orders
+        description: Number of orders placed at the location on the date, calculated after item-level revenue is collapsed to one row per order.
       - name: food_revenue
         description: Portion of total revenue in USD from products classified as food.
       - name: drink_revenue

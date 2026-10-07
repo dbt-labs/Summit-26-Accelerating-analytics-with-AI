@@ -1,4 +1,31 @@
+{{
+    config(
+        materialized='incremental',
+        unique_key='daily_location_performance_key',
+        incremental_strategy='merge'
+    )
+}}
+
 with
+
+orders as (
+
+    select
+        order_id,
+        order_date,
+        location_id,
+        subtotal
+
+    from {{ ref('orders') }}
+
+    {% if is_incremental() %}
+    where order_date >= (
+        select coalesce(dateadd(day, -3, max(order_date)), '1900-01-01'::date)
+        from {{ this }}
+    )
+    {% endif %}
+
+),
 
 order_items as (
 
@@ -10,17 +37,12 @@ order_items as (
 
     from {{ ref('order_items') }}
 
-),
-
-orders as (
-
-    select
-        order_id,
-        order_date,
-        location_id,
-        subtotal
-
-    from {{ ref('orders') }}
+    {% if is_incremental() %}
+    where order_date >= (
+        select coalesce(dateadd(day, -3, max(order_date)), '1900-01-01'::date)
+        from {{ this }}
+    )
+    {% endif %}
 
 ),
 
@@ -58,19 +80,14 @@ order_item_revenue as (
 
 ),
 
-final as (
+daily_performance as (
 
     select
-        {{ dbt_utils.generate_surrogate_key([
-            'orders.order_date',
-            'orders.location_id'
-        ]) }} as daily_location_performance_id,
         orders.order_date,
         orders.location_id,
-        locations.location_name,
 
         sum(orders.subtotal) as total_revenue,
-        count(*) as order_count,
+        count(*) as count_orders,
         sum(coalesce(order_item_revenue.food_revenue, 0)) as food_revenue,
         sum(coalesce(order_item_revenue.drink_revenue, 0)) as drink_revenue
 
@@ -79,10 +96,29 @@ final as (
     left join order_item_revenue
         on orders.order_id = order_item_revenue.order_id
 
-    left join locations
-        on orders.location_id = locations.location_id
+    group by 1, 2
 
-    group by 1, 2, 3, 4
+),
+
+final as (
+
+    select
+        {{ dbt_utils.generate_surrogate_key([
+            'daily_performance.order_date',
+            'daily_performance.location_id'
+        ]) }} as daily_location_performance_key,
+        daily_performance.order_date,
+        daily_performance.location_id,
+        locations.location_name,
+        daily_performance.total_revenue,
+        daily_performance.count_orders,
+        daily_performance.food_revenue,
+        daily_performance.drink_revenue
+
+    from daily_performance
+
+    left join locations
+        on daily_performance.location_id = locations.location_id
 
 )
 
