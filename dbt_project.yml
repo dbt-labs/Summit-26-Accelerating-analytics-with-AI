@@ -1,4 +1,4 @@
-name: jaffle_shop
+name: jaffle_shop 
 
 profile: yda_summit
 
@@ -12,9 +12,11 @@ clean-targets:
 models:
   jaffle_shop:
     # Materialize staging models as views, and marts as tables
+    +static_analysis: strict
     staging:
       +materialized: view
     marts:
       +materialized: table
 flags:
   require_generic_test_arguments_property: true
+  manage_state: true
