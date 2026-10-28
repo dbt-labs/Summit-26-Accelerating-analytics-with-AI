@@ -17,6 +17,8 @@ models:
       +materialized: view
     marts:
       +materialized: table
+  +state:
+    lag_tolerance: "{{ '4h' if target.name == 'prod' else '7d' }}"
 flags:
   require_generic_test_arguments_property: true
   manage_state: true
