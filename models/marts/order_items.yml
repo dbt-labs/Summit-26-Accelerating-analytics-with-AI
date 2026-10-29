@@ -4,14 +4,71 @@ models:
       group: analytics_engineering
       meta:
         owner: analytics_engineering
+    semantic_model:
+      enabled: true
+    agg_time_dimension: order_date
     columns:
       - name: order_item_id
+        entity:
+          type: primary
+          name: order_item
         data_tests:
           - not_null
           - unique
       - name: order_id
+        entity:
+          type: foreign
+          name: order
         data_tests:
           - relationships:
               arguments:
                 to: ref('orders')
                 field: order_id
+      - name: product_id
+        entity:
+          type: foreign
+          name: product
+      - name: order_date
+        granularity: day
+        dimension:
+          type: time
+
+    metrics:
+      - name: total_cost
+        description: Cost from the supplier for the order item multiplied by the quantity purchased.
+        label: Total Cost
+        type: simple
+        agg: sum
+        expr: supply_cost
+
+      - name: gross_item_sales_amount
+        description: Gross sales amount of the order item.
+        label: Gross Item Sales Amount
+        type: simple
+        agg: sum
+        expr: product_price
+
+      - name: net_item_sales_amount
+        description: Net sales amount of the order item; currently equal to gross item sales because no discounts or adjustments are modeled.
+        label: Net Item Sales Amount
+        type: simple
+        agg: sum
+        expr: product_price
+
+      - name: met_cost_ratio
+        description: The ratio of supplier cost to gross sales amount.
+        label: Cost Ratio
+        type: ratio
+        numerator: total_cost
+        denominator: gross_item_sales_amount
+
+      - name: met_gross_profit
+        description: Net sales less total supplier cost.
+        label: Gross Profit
+        type: derived
+        expr: net_sales - supplier_cost
+        input_metrics:
+          - name: net_item_sales_amount
+            alias: net_sales
+          - name: total_cost
+            alias: supplier_cost
